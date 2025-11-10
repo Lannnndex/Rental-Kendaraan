@@ -1,4 +1,4 @@
-# 🚗 Sistem Manajemen Rental Kendaraan Sederhana
+# 🚗 Sistem Manajemen Rental Kendaraan 
 
 Ini adalah aplikasi web sederhana yang dibangun menggunakan **PHP Native** untuk mengelola operasi rental kendaraan. Aplikasi ini menerapkan pola desain Model-View-Controller (MVC) dasar dan memiliki sistem hak akses berbasis peran (Role-Based Access Control - RBAC).
 
