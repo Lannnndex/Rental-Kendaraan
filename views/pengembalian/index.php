@@ -54,9 +54,9 @@ function createSortLink($column, $text, $currentSortBy, $currentSortOrder, $curr
                     <thead class="text-xs text-text-secondary-dark uppercase border-b border-white/10">
                         <tr>
                             <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('id_pengembalian', 'No.', $sortBy, $sortOrder, $search) ?></th>
-                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('id_sewa', 'ID Sewa', $sortBy, $sortOrder, $search) ?></th>
+                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('id_rental', 'ID Rental', $sortBy, $sortOrder, $search) ?></th>
                             <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('nama_pelanggan', 'Pelanggan', $sortBy, $sortOrder, $search) ?></th>
-                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('tgl_dikembalikan', 'Tgl Dikembalikan', $sortBy, $sortOrder, $search) ?></th>
+                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('tanggal_dikembalikan', 'Tgl Dikembalikan', $sortBy, $sortOrder, $search) ?></th>
                             <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('denda', 'Denda', $sortBy, $sortOrder, $search) ?></th>
                             <th class="px-6 py-4 font-semibold" scope="col">Aksi</th>
                         </tr>
@@ -80,9 +80,9 @@ function createSortLink($column, $text, $currentSortBy, $currentSortOrder, $curr
                                         if ($sortOrder == 'DESC') { echo $nomor--; } else { echo $nomor++; }
                                     ?>
                                 </td>
-                                <td class="px-6 py-5">#<?= htmlspecialchars($row['id_sewa']) ?></td>
+                                <td class="px-6 py-5">#<?= htmlspecialchars($row['id_rental']) ?></td>
                                 <td class="px-6 py-5"><?= htmlspecialchars($row['nama_pelanggan']) ?></td>
-                                <td class="px-6 py-5"><?= htmlspecialchars(date('d M Y', strtotime($row['tgl_dikembalikan']))) ?></td>
+                                <td class="px-6 py-5"><?= htmlspecialchars(date('d M Y', strtotime($row['tanggal_dikembalikan']))) ?></td>
                                 <td class="px-6 py-5 font-semibold <?= ($row['denda'] > 0) ? 'text-red-400' : 'text-green-400' ?>">
                                     Rp <?= number_format($row['denda'], 0, ',', '.') ?>
                                 </td>

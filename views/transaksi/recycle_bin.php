@@ -24,7 +24,7 @@ include 'header.php';
                                 <th class="px-6 py-4 font-semibold" scope="col">
                                     <input type="checkbox" id="checkAll" class="w-4 h-4 bg-white/10 border-white/30 rounded text-primary focus:ring-primary focus:ring-2">
                                 </th>
-                                <th class="px-6 py-4 font-semibold" scope="col">ID Sewa</th>
+                                <th class="px-6 py-4 font-semibold" scope="col">ID Rental</th>
                                 <th class="px-6 py-4 font-semibold" scope="col">Pelanggan</th>
                                 <th class="px-6 py-4 font-semibold" scope="col">Kendaraan</th>
                                 <th class="px-6 py-4 font-semibold" scope="col">Total Biaya</th>
@@ -36,16 +36,16 @@ include 'header.php';
                             <?php while($row = $result->fetch_assoc()): ?>
                             <tr class="border-b border-white/10 hover:bg-white/5 transition-colors">
                                 <td class="px-6 py-5">
-                                    <input type="checkbox" name="ids[]" value="<?= $row['id_sewa'] ?>" class="rowCheckbox w-4 h-4 bg-white/10 border-white/30 rounded text-primary focus:ring-primary focus:ring-2">
+                                    <input type="checkbox" name="ids[]" value="<?= $row['id_rental'] ?>" class="rowCheckbox w-4 h-4 bg-white/10 border-white/30 rounded text-primary focus:ring-primary focus:ring-2">
                                 </td>
-                                <td class="px-6 py-5 font-medium">#<?= htmlspecialchars($row['id_sewa']) ?></td>
+                                <td class="px-6 py-5 font-medium">#<?= htmlspecialchars($row['id_rental']) ?></td>
                                 <td class="px-6 py-5"><?= htmlspecialchars($row['nama_pelanggan']) ?></td>
                                 <td class="px-6 py-5"><?= htmlspecialchars($row['merk_kendaraan']) ?> (<?= htmlspecialchars($row['no_plat']) ?>)</td>
                                 <td class="px-6 py-5">Rp <?= number_format($row['total_biaya'], 0, ',', '.') ?></td>
                                 <td class="px-6 py-5"><?= DateHelper::indoFull($row['deleted_at']) ?></td>
                                 <td class="px-6 py-5 flex items-center gap-2">
-                                    <a href="index.php?page=transaksi&action=restore&id=<?= $row['id_sewa'] ?>" class="px-3 py-1 text-xs font-medium text-emerald-300 bg-emerald-500/20 rounded-md hover:bg-emerald-500/30 transition" onclick="return confirm('Anda yakin ingin mengembalikan data ini?')">Restore</a>
-                                    <a href="index.php?page=transaksi&action=deletePermanent&id=<?= $row['id_sewa'] ?>" class="px-3 py-1 text-xs font-medium text-red-300 bg-red-500/20 rounded-md hover:bg-red-500/30 transition" onclick="return confirm('ANDA YAKIN? Data ini akan hilang selamanya dan tidak bisa dikembalikan!')">Hapus Permanen</a>
+                                    <a href="index.php?page=transaksi&action=restore&id=<?= $row['id_rental'] ?>" class="px-3 py-1 text-xs font-medium text-emerald-300 bg-emerald-500/20 rounded-md hover:bg-emerald-500/30 transition" onclick="return confirm('Anda yakin ingin mengembalikan data ini?')">Restore</a>
+                                    <a href="index.php?page=transaksi&action=deletePermanent&id=<?= $row['id_rental'] ?>" class="px-3 py-1 text-xs font-medium text-red-300 bg-red-500/20 rounded-md hover:bg-red-500/30 transition" onclick="return confirm('ANDA YAKIN? Data ini akan hilang selamanya dan tidak bisa dikembalikan!')">Hapus Permanen</a>
                                 </td>
                             </tr>
                             <?php endwhile; ?>

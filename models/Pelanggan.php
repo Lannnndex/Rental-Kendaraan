@@ -19,7 +19,8 @@ class Pelanggan {
 
     // Menghitung total data untuk paginasi, dengan filter pencarian
     public function countAll($search = '') {
-        $sql = "SELECT COUNT(id_pelanggan) as total FROM pelanggan WHERE deleted_at IS NULL";
+        // pelanggan now keyed by no_ktp
+        $sql = "SELECT COUNT(no_ktp) as total FROM pelanggan WHERE deleted_at IS NULL";
         $params = []; $types = '';
         if (!empty($search)) {
             $sql .= " AND (nama LIKE ? OR alamat LIKE ? OR no_hp LIKE ? OR no_ktp LIKE ?)";
@@ -33,9 +34,9 @@ class Pelanggan {
     }
     
     // Mengambil semua data untuk tabel, dengan paginasi, pencarian, dan sorting
-    public function getAll($search = '', $limit = 10, $offset = 0, $sortBy = 'id_pelanggan', $sortOrder = 'ASC') {
-        $allowedSortColumns = ['id_pelanggan', 'nama', 'alamat', 'no_hp', 'no_ktp'];
-        if (!in_array($sortBy, $allowedSortColumns)) $sortBy = 'id_pelanggan';
+    public function getAll($search = '', $limit = 10, $offset = 0, $sortBy = 'no_ktp', $sortOrder = 'ASC') {
+        $allowedSortColumns = ['no_ktp', 'nama', 'alamat', 'no_hp'];
+        if (!in_array($sortBy, $allowedSortColumns)) $sortBy = 'no_ktp';
         if (!in_array(strtoupper($sortOrder), ['ASC', 'DESC'])) $sortOrder = 'ASC';
         $sql = "SELECT * FROM pelanggan WHERE deleted_at IS NULL";
         $params = []; $types = '';
@@ -53,56 +54,62 @@ class Pelanggan {
     }
     
     // Mengambil satu data pelanggan berdasarkan ID
-    public function getById($id) {
-        $stmt = $this->conn->prepare("SELECT * FROM pelanggan WHERE id_pelanggan = ?");
-        $stmt->bind_param("i", $id); $stmt->execute();
+    public function getById($no_ktp) {
+        // $no_ktp expected as string PK
+        $stmt = $this->conn->prepare("SELECT * FROM pelanggan WHERE no_ktp = ?");
+        $stmt->bind_param("s", $no_ktp); $stmt->execute();
         return $stmt->get_result()->fetch_assoc();
     }
     
     // --- (Fungsi CRUD Standar) ---
 
-    public function create($nama, $alamat, $no_hp, $no_ktp) {
-        $stmt = $this->conn->prepare("INSERT INTO pelanggan (nama, alamat, no_hp, no_ktp) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("ssss", $nama, $alamat, $no_hp, $no_ktp);
+    // Note: use ($no_ktp, $nama, $alamat, $no_hp, $foto_sim) to match DB column order
+    public function create($no_ktp, $nama, $alamat, $no_hp, $foto_sim = null) {
+        $stmt = $this->conn->prepare("INSERT INTO pelanggan (no_ktp, nama, alamat, no_hp, foto_sim) VALUES (?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssss", $no_ktp, $nama, $alamat, $no_hp, $foto_sim);
         return $stmt->execute();
     }
-    public function update($id, $nama, $alamat, $no_hp, $no_ktp) {
-        $stmt = $this->conn->prepare("UPDATE pelanggan SET nama=?, alamat=?, no_hp=?, no_ktp=? WHERE id_pelanggan=?");
-        $stmt->bind_param("ssssi", $nama, $alamat, $no_hp, $no_ktp, $id);
+    public function update($no_ktp, $nama, $alamat, $no_hp, $foto_sim = null) {
+        $stmt = $this->conn->prepare("UPDATE pelanggan SET nama=?, alamat=?, no_hp=?, foto_sim=? WHERE no_ktp=?");
+        $stmt->bind_param("sssss", $nama, $alamat, $no_hp, $foto_sim, $no_ktp);
         return $stmt->execute();
     }
 
     // --- (Fungsi Soft Delete & Recycle Bin) ---
 
-    public function delete($id) {
+    public function delete($no_ktp) {
         // Ini adalah Soft Delete
-        $stmt = $this->conn->prepare("UPDATE pelanggan SET deleted_at = NOW() WHERE id_pelanggan = ?");
-        $stmt->bind_param("i", $id); return $stmt->execute();
+        $stmt = $this->conn->prepare("UPDATE pelanggan SET deleted_at = NOW() WHERE no_ktp = ?");
+        $stmt->bind_param("s", $no_ktp); return $stmt->execute();
     }
     public function getAllDeleted() {
-        return $this->conn->query("SELECT * FROM pelanggan WHERE deleted_at IS NOT NULL ORDER BY id_pelanggan ASC");
+        return $this->conn->query("SELECT * FROM pelanggan WHERE deleted_at IS NOT NULL ORDER BY no_ktp ASC");
     }
-    public function restore($id) {
-        $stmt = $this->conn->prepare("UPDATE pelanggan SET deleted_at = NULL WHERE id_pelanggan = ?");
-        $stmt->bind_param("i", $id); return $stmt->execute();
+    public function restore($no_ktp) {
+        $stmt = $this->conn->prepare("UPDATE pelanggan SET deleted_at = NULL WHERE no_ktp = ?");
+        $stmt->bind_param("s", $no_ktp); return $stmt->execute();
     }
-    public function deletePermanent($id) {
-        $stmt = $this->conn->prepare("DELETE FROM pelanggan WHERE id_pelanggan = ?");
-        $stmt->bind_param("i", $id); return $stmt->execute();
+    public function deletePermanent($no_ktp) {
+        $stmt = $this->conn->prepare("DELETE FROM pelanggan WHERE no_ktp = ?");
+        $stmt->bind_param("s", $no_ktp); return $stmt->execute();
     }
     public function restoreBulk(array $ids) {
         if (empty($ids)) return false;
-        $idList = implode(',', $ids);
-        foreach ($ids as $id) { if (!is_numeric($id)) return false; }
-        $sql = "UPDATE pelanggan SET deleted_at = NULL WHERE id_pelanggan IN ($idList)";
-        $stmt = $this->conn->prepare($sql); return $stmt->execute();
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "UPDATE pelanggan SET deleted_at = NULL WHERE no_ktp IN ($placeholders)";
+        $stmt = $this->conn->prepare($sql);
+        $types = str_repeat('s', count($ids));
+        $stmt->bind_param($types, ...$ids);
+        return $stmt->execute();
     }
     public function deletePermanentBulk(array $ids) {
         if (empty($ids)) return false;
-        $idList = implode(',', $ids);
-        foreach ($ids as $id) { if (!is_numeric($id)) return false; }
-        $sql = "DELETE FROM pelanggan WHERE id_pelanggan IN ($idList) AND deleted_at IS NOT NULL";
-        $stmt = $this->conn->prepare($sql); return $stmt->execute();
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "DELETE FROM pelanggan WHERE no_ktp IN ($placeholders) AND deleted_at IS NOT NULL";
+        $stmt = $this->conn->prepare($sql);
+        $types = str_repeat('s', count($ids));
+        $stmt->bind_param($types, ...$ids);
+        return $stmt->execute();
     }
     public function autoDeleteOld($days = 30) {
         $sql = "DELETE FROM pelanggan WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - INTERVAL ? DAY";

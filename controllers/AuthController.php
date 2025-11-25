@@ -42,7 +42,8 @@ class AuthController {
                     // Password benar, buat session baru
                     session_regenerate_id(true); // Keamanan: cegah session fixation
                     
-                    $_SESSION['user_id'] = $user['id_user'];
+                    // Support both legacy `id_user` and new `id_users` column
+                    $_SESSION['user_id'] = $user['id_users'] ?? $user['id_user'] ?? null;
                     $_SESSION['username'] = $user['username'];
                     $_SESSION['nama_lengkap'] = $user['nama_lengkap'];
                     $_SESSION['role'] = $user['role'];

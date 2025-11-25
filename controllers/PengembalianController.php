@@ -38,43 +38,73 @@ class PengembalianController extends BaseController {
         $this->authorize(['admin', 'manajer', 'karyawan']);
         
         $errors = [];
-        $data = ['id_sewa' => '', 'tgl_dikembalikan' => '', 'denda' => 0];
+        $data = ['id_rental' => '', 'tanggal_dikembalikan' => '', 'denda' => 0];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             CSRF::verifyOrFail();
             
-            $denda_input = Sanitizer::numeric($_POST['denda']);
-            
+            $denda_input = isset($_POST['denda']) ? Sanitizer::numeric($_POST['denda']) : null;
+
             $data = [
-                'id_sewa' => Sanitizer::numeric($_POST['id_sewa']),
-                'tgl_dikembalikan' => Sanitizer::text($_POST['tgl_dikembalikan']),
-                'denda' => empty($denda_input) ? 0 : $denda_input
+                'id_rental' => Sanitizer::text($_POST['id_rental'] ?? ''),
+                'tanggal_dikembalikan' => Sanitizer::text($_POST['tanggal_dikembalikan'] ?? ''),
+                'denda' => $denda_input !== null ? $denda_input : null
             ];
 
             $validator = new Validator($this->factory->getDb()); 
             
             $validator->setFieldNames([
-                'id_sewa' => 'ID Transaksi Sewa',
-                'tgl_dikembalikan' => 'Tanggal Dikembalikan',
+                'id_rental' => 'ID Rental',
+                'tanggal_dikembalikan' => 'Tanggal Dikembalikan',
                 'denda' => 'Denda'
             ]);
 
             $rules = [
-                'id_sewa' => 'required|numeric',
-                'tgl_dikembalikan' => 'required|dateFormat:Y-m-d',
-                'denda' => 'numeric|between:0,999999999'
+                'id_rental' => 'required',
+                'tanggal_dikembalikan' => 'required',
+                'denda' => 'nullable|numeric|between:0,999999999'
             ];
 
             if ($validator->validate($data, $rules)) {
-                $this->pengembalianModel->create($data['id_sewa'], $data['tgl_dikembalikan'], $data['denda']);
-                
-                $transaksi = $this->transaksiModel->getById($data['id_sewa']);
-                if ($transaksi) {
-                    $this->kendaraanModel->updateStatus($transaksi['id_kendaraan'], 'tersedia');
+                // If denda not provided, compute based on lateness and harga_per_jam
+                $computedDenda = $data['denda'];
+                $rental = $this->transaksiModel->getById($data['id_rental']);
+                if (!$rental) {
+                    $errors[] = 'Rental tidak ditemukan.';
+                } else {
+                    if ($computedDenda === null) {
+                        try {
+                            $planned = new DateTime($rental['tanggal_kembali']);
+                            $actual = new DateTime($data['tanggal_dikembalikan']);
+                            $secondsLate = $actual->getTimestamp() - $planned->getTimestamp();
+                            if ($secondsLate > 0) {
+                                $hoursLate = ceil($secondsLate / 3600);
+                                $vehicle = $this->kendaraanModel->getById($rental['no_plat']);
+                                $harga = (float)($vehicle['harga_per_jam'] ?? 0);
+                                // Default fine: 1 * harga_per_jam per hour late
+                                $computedDenda = $hoursLate * $harga;
+                            } else {
+                                $computedDenda = 0;
+                            }
+                        } catch (Exception $e) {
+                            $errors[] = 'Format tanggal tidak valid.';
+                        }
+                    }
+
+                    if (empty($errors)) {
+                        $created = $this->safe(function() use ($data, $computedDenda) {
+                            return $this->pengembalianModel->create($data['id_rental'], $data['tanggal_dikembalikan'], $computedDenda);
+                        });
+                        if ($created) {
+                            // Update kendaraan status to tersedia
+                            $this->kendaraanModel->updateStatus($rental['no_plat'], 'tersedia');
+                            header("Location: index.php?page=pengembalian");
+                            exit();
+                        } else {
+                            $errors[] = 'Gagal menyimpan data pengembalian.';
+                        }
+                    }
                 }
-                
-                header("Location: index.php?page=pengembalian");
-                exit();
             } else {
                 $errors = $validator->getErrors();
             }
@@ -99,28 +129,34 @@ class PengembalianController extends BaseController {
 
             $denda_input = Sanitizer::numeric($_POST['denda']);
 
-            $data['id_sewa'] = Sanitizer::numeric($_POST['id_sewa']);
-            $data['tgl_dikembalikan'] = Sanitizer::text($_POST['tgl_dikembalikan']);
+            $data['id_rental'] = Sanitizer::text($_POST['id_rental']);
+            $data['tanggal_dikembalikan'] = Sanitizer::text($_POST['tanggal_dikembalikan']);
             $data['denda'] = empty($denda_input) ? 0 : $denda_input;
             
             $validator = new Validator($this->factory->getDb()); 
 
             $validator->setFieldNames([
-                'id_sewa' => 'ID Transaksi Sewa',
-                'tgl_dikembalikan' => 'Tanggal Dikembalikan',
+                'id_rental' => 'ID Rental',
+                'tanggal_dikembalikan' => 'Tanggal Dikembalikan',
                 'denda' => 'Denda'
             ]);
 
             $rules = [
-                'id_sewa' => 'required|numeric',
-                'tgl_dikembalikan' => 'required|dateFormat:Y-m-d',
+                'id_rental' => 'required',
+                'tanggal_dikembalikan' => 'required|dateFormat:Y-m-d',
                 'denda' => 'numeric|between:0,999999999'
             ];
 
             if ($validator->validate($data, $rules)) {
-                $this->pengembalianModel->update($id, $data['id_sewa'], $data['tgl_dikembalikan'], $data['denda']);
-                header("Location: index.php?page=pengembalian");
-                exit();
+                $updated = $this->safe(function() use ($id, $data) {
+                    return $this->pengembalianModel->update($id, $data['id_rental'], $data['tanggal_dikembalikan'], $data['denda']);
+                });
+                if ($updated) {
+                    header("Location: index.php?page=pengembalian");
+                    exit();
+                } else {
+                    $errors[] = 'Gagal memperbarui data pengembalian.';
+                }
             } else {
                 $errors = $validator->getErrors();
             }
@@ -144,12 +180,14 @@ class PengembalianController extends BaseController {
                 // Logika Bisnis: Set status mobil kembali ke 'disewa'
                 $pengembalian = $this->pengembalianModel->getById($id);
                 if ($pengembalian) {
-                    $transaksi = $this->transaksiModel->getById($pengembalian['id_sewa']);
+                    $transaksi = $this->transaksiModel->getById($pengembalian['id_rental']);
                     if ($transaksi) {
-                        $this->kendaraanModel->updateStatus($transaksi['id_kendaraan'], 'disewa');
+                        $this->kendaraanModel->updateStatus($transaksi['no_plat'], 'disewa');
                     }
                 }
-                $this->pengembalianModel->delete($id);
+                $this->safe(function() use ($id) {
+                    return $this->pengembalianModel->delete($id);
+                });
             }
         }
         
@@ -168,19 +206,23 @@ class PengembalianController extends BaseController {
         
         $pengembalian = $this->pengembalianModel->getById($id, true);
         if ($pengembalian) {
-            $transaksi = $this->transaksiModel->getById($pengembalian['id_sewa'], true);
+            $transaksi = $this->transaksiModel->getById($pengembalian['id_rental'], true);
             if ($transaksi) {
-                $this->kendaraanModel->updateStatus($transaksi['id_kendaraan'], 'tersedia');
+                $this->kendaraanModel->updateStatus($transaksi['no_plat'], 'tersedia');
             }
         }
         
-        $this->pengembalianModel->restore($id);
+        $this->safe(function() use ($id) {
+            return $this->pengembalianModel->restore($id);
+        });
         header("Location: index.php?page=pengembalian&action=recycleBin");
     }
 
     public function deletePermanent($id) {
         $this->authorize(['admin']);
-        $this->pengembalianModel->deletePermanent($id);
+        $this->safe(function() use ($id) {
+            return $this->pengembalianModel->deletePermanent($id);
+        });
         header("Location: index.php?page=pengembalian&action=recycleBin");
     }
 
@@ -191,20 +233,20 @@ class PengembalianController extends BaseController {
             $action = $_POST['bulk_action'] ?? null;
             $ids = $_POST['ids'] ?? [];
             
-            if (!empty($ids) && $action == 'restore') {
+                if (!empty($ids) && $action == 'restore') {
                 foreach ($ids as $id) {
                     $pengembalian = $this->pengembalianModel->getById($id, true);
                     if ($pengembalian) {
-                        $transaksi = $this->transaksiModel->getById($pengembalian['id_sewa'], true);
+                        $transaksi = $this->transaksiModel->getById($pengembalian['id_rental'], true);
                         if ($transaksi) {
-                            $this->kendaraanModel->updateStatus($transaksi['id_kendaraan'], 'tersedia');
+                            $this->kendaraanModel->updateStatus($transaksi['no_plat'], 'tersedia');
                         }
                     }
                 }
-                $this->pengembalianModel->restoreBulk($ids); 
+                $this->safe(function() use ($ids) { return $this->pengembalianModel->restoreBulk($ids); }); 
                 
             } elseif (!empty($ids) && $action == 'delete_permanent') {
-                $this->pengembalianModel->deletePermanentBulk($ids);
+                $this->safe(function() use ($ids) { return $this->pengembalianModel->deletePermanentBulk($ids); });
             }
         }
         header("Location: index.php?page=pengembalian&action=recycleBin");

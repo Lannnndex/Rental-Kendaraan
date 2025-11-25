@@ -104,10 +104,11 @@ function createSortLink($column, $text, $currentSortBy, $currentSortOrder, $curr
                                 <td class="px-6 py-5"><?= htmlspecialchars(Sanitizer::formatPhone($row['no_hp'] ?? '')) ?></td> 
                                 <td class="px-6 py-5"><?= htmlspecialchars($row['no_ktp']) ?></td>
                                 <td class="px-6 py-5 flex items-center gap-2">
-                                    <a href="index.php?page=pelanggan&action=edit&id=<?= $row['id_pelanggan'] ?>" class="px-3 py-1 text-xs font-medium text-amber-300 bg-amber-500/20 rounded-md hover:bg-amber-500/30 transition">Edit</a>
+                                    <a href="index.php?page=pelanggan&action=show&id=<?= urlencode($row['no_ktp']) ?>" class="px-3 py-1 text-xs font-medium text-sky-300 bg-sky-500/20 rounded-md hover:bg-sky-500/30 transition">Detail</a>
+                                    <a href="index.php?page=pelanggan&action=edit&id=<?= urlencode($row['no_ktp']) ?>" class="px-3 py-1 text-xs font-medium text-amber-300 bg-amber-500/20 rounded-md hover:bg-amber-500/30 transition">Edit</a>
                                     
                                     <form method="POST" action="index.php?page=pelanggan&action=delete" class="m-0 p-0">
-                                        <input type="hidden" name="id_to_delete" value="<?= $row['id_pelanggan'] ?>">
+                                        <input type="hidden" name="id_to_delete" value="<?= htmlspecialchars($row['no_ktp']) ?>">
                                         <input type="hidden" name="csrf_token" value="<?= CSRF::getToken() ?>">
                                         
                                         <button type="submit" 

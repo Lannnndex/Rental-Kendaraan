@@ -30,5 +30,19 @@ class BaseController {
             exit;
         }
     }
+
+    // Safe wrapper to execute operations and catch unexpected exceptions.
+    // Returns the callable's return value on success, or false on error and
+    // sets a generic flash error message in the session.
+    protected function safe(callable $fn) {
+        try {
+            return call_user_func($fn);
+        } catch (Throwable $e) {
+            // Log detailed error for server-side debugging
+            error_log("[SafeHandler] " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+            $_SESSION['flash_error'] = 'Terjadi kesalahan pada server. Silakan coba lagi.';
+            return false;
+        }
+    }
 }
 ?>

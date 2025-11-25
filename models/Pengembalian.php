@@ -11,9 +11,9 @@ class Pengembalian {
     // Menghitung total data untuk paginasi, dengan filter pencarian
     public function countAll($search = '') {
         $sql = "SELECT COUNT(pg.id_pengembalian) as total FROM pengembalian pg
-                JOIN transaksi_sewa ts ON pg.id_sewa = ts.id_sewa
-                JOIN pelanggan p ON ts.id_pelanggan = p.id_pelanggan
-                WHERE pg.deleted_at IS NULL";
+            JOIN rental r ON pg.id_rental = r.id_rental
+            JOIN pelanggan p ON r.no_ktp = p.no_ktp
+            WHERE pg.deleted_at IS NULL";
         $params = []; $types = '';
         if (!empty($search)) {
             $sql .= " AND p.nama LIKE ?";
@@ -28,10 +28,10 @@ class Pengembalian {
 
     // Mengambil semua data untuk tabel, dengan paginasi, pencarian, dan sorting
     public function getAll($search = '', $limit = 10, $offset = 0, $sortBy = 'id_pengembalian', $sortOrder = 'ASC') {
-        $allowedSortColumns = ['id_pengembalian', 'id_sewa', 'nama_pelanggan', 'tgl_dikembalikan', 'denda'];
+        $allowedSortColumns = ['id_pengembalian', 'id_rental', 'nama_pelanggan', 'tanggal_dikembalikan', 'denda'];
         $sortColumnMap = [
-            'id_pengembalian' => 'pg.id_pengembalian', 'id_sewa' => 'pg.id_sewa',
-            'nama_pelanggan' => 'p.nama', 'tgl_dikembalikan' => 'pg.tgl_dikembalikan',
+            'id_pengembalian' => 'pg.id_pengembalian', 'id_rental' => 'pg.id_rental',
+            'nama_pelanggan' => 'p.nama', 'tanggal_dikembalikan' => 'pg.tanggal_dikembalikan',
             'denda' => 'pg.denda'
         ];
         if (!in_array($sortBy, $allowedSortColumns)) $sortBy = 'id_pengembalian';
@@ -39,9 +39,9 @@ class Pengembalian {
         $orderByColumn = $sortColumnMap[$sortBy];
         
         $sql = "SELECT pg.*, p.nama AS nama_pelanggan FROM pengembalian pg
-                JOIN transaksi_sewa ts ON pg.id_sewa = ts.id_sewa
-                JOIN pelanggan p ON ts.id_pelanggan = p.id_pelanggan
-                WHERE pg.deleted_at IS NULL";
+            JOIN rental r ON pg.id_rental = r.id_rental
+            JOIN pelanggan p ON r.no_ktp = p.no_ktp
+            WHERE pg.deleted_at IS NULL";
         $params = []; $types = '';
         if (!empty($search)) {
             $sql .= " AND p.nama LIKE ?";
@@ -73,14 +73,14 @@ class Pengembalian {
 
     // --- (Fungsi CRUD Standar) ---
 
-    public function create($id_sewa, $tgl_dikembalikan, $denda) {
-        $stmt = $this->conn->prepare("INSERT INTO pengembalian (id_sewa, tgl_dikembalikan, denda) VALUES (?, ?, ?)");
-        $stmt->bind_param("isd", $id_sewa, $tgl_dikembalikan, $denda);
+    public function create($id_rental, $tgl_dikembalikan, $denda) {
+        $stmt = $this->conn->prepare("INSERT INTO pengembalian (id_rental, tanggal_dikembalikan, denda) VALUES (?, ?, ?)");
+        $stmt->bind_param("ssd", $id_rental, $tgl_dikembalikan, $denda);
         return $stmt->execute();
     }
-    public function update($id, $id_sewa, $tgl_dikembalikan, $denda) {
-        $stmt = $this->conn->prepare("UPDATE pengembalian SET id_sewa=?, tgl_dikembalikan=?, denda=? WHERE id_pengembalian=?");
-        $stmt->bind_param("isdi", $id_sewa, $tgl_dikembalikan, $denda, $id);
+    public function update($id, $id_rental, $tgl_dikembalikan, $denda) {
+        $stmt = $this->conn->prepare("UPDATE pengembalian SET id_rental=?, tanggal_dikembalikan=?, denda=? WHERE id_pengembalian=?");
+        $stmt->bind_param("ssdi", $id_rental, $tgl_dikembalikan, $denda, $id);
         return $stmt->execute();
     }
     
@@ -94,9 +94,9 @@ class Pengembalian {
     
     public function getAllDeleted() {
         $sql = "SELECT pg.*, p.nama AS nama_pelanggan FROM pengembalian pg
-                JOIN transaksi_sewa ts ON pg.id_sewa = ts.id_sewa
-                JOIN pelanggan p ON ts.id_pelanggan = p.id_pelanggan
-                WHERE pg.deleted_at IS NOT NULL ORDER BY pg.deleted_at DESC";
+            JOIN rental r ON pg.id_rental = r.id_rental
+            JOIN pelanggan p ON r.no_ktp = p.no_ktp
+            WHERE pg.deleted_at IS NOT NULL ORDER BY pg.deleted_at DESC";
         return $this->conn->query($sql);
     }
     

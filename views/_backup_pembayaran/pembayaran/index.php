@@ -53,7 +53,7 @@ function createSortLink($column, $text, $currentSortBy, $currentSortOrder, $curr
                     <thead class="text-xs text-text-secondary-dark uppercase border-b border-white/10">
                         <tr>
                             <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('id_pembayaran', 'No.', $sortBy, $sortOrder, $search) ?></th>
-                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('id_sewa', 'ID Sewa', $sortBy, $sortOrder, $search) ?></th>
+                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('id_rental', 'ID Rental', $sortBy, $sortOrder, $search) ?></th>
                             <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('nama_pelanggan', 'Pelanggan', $sortBy, $sortOrder, $search) ?></th>
                             <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('tgl_bayar', 'Tgl Bayar', $sortBy, $sortOrder, $search) ?></th>
                             <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('jumlah_bayar', 'Jumlah', $sortBy, $sortOrder, $search) ?></th>
@@ -84,7 +84,7 @@ function createSortLink($column, $text, $currentSortBy, $currentSortOrder, $curr
                                     }
                                 ?>
                             </td>
-                            <td class="px-6 py-5">#<?= htmlspecialchars($row['id_sewa']) ?></td>
+                            <td class="px-6 py-5">#<?= htmlspecialchars($row['id_rental']) ?></td>
                             <td class="px-6 py-5"><?= htmlspecialchars($row['nama_pelanggan']) ?></td>
                             
                             <td class="px-6 py-5"><?= htmlspecialchars(date('d M Y', strtotime($row['tgl_bayar']))) ?></td>

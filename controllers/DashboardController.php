@@ -43,8 +43,14 @@ class DashboardController extends BaseController {
         
         // ======================================================
 
-        // 3. Sertakan view. 
-        //    (View sekarang bisa mengakses $summary DAN $vehicleCounts)
+        // 3. Ambil KPI tambahan untuk manager view
+        $kpi = [];
+        $kpi['ongoing_rentals'] = $this->model->getOngoingRentalsCount();
+        $kpi['available_vehicles'] = $this->model->getAvailableVehiclesCount();
+        $kpi['monthly_revenue'] = $this->model->getMonthlyRevenueCurrent();
+        $kpi['recent_transactions'] = $this->model->getRecentTransactions(6);
+
+        // 4. Sertakan view. (View sekarang bisa mengakses $summary, $vehicleCounts, dan $kpi)
         include "views/dashboard/index.php";
     }
 }

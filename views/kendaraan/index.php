@@ -61,59 +61,23 @@ function createSortLink($column, $text, $currentSortBy, $currentSortOrder, $curr
                 <a href="index.php?page=kendaraan" class="px-4 py-3 text-sm font-medium bg-white/10 border border-white/20 text-text-secondary-dark rounded-lg shadow-sm hover:bg-white/20 transition-colors">Reset</a>
             </form>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead class="text-xs text-text-secondary-dark uppercase border-b border-white/10">
-                        <tr>
-                            <th class="px-6 py-4 font-semibold" scope="col">
-                                <?= createSortLink('id_kendaraan', 'No.', $sortBy, $sortOrder, $search) ?>
-                            </th>
-                            <th class="px-6 py-4 font-semibold" scope="col">
-                                <?= createSortLink('jenis', 'Jenis', $sortBy, $sortOrder, $search) ?>
-                            </th>
-                            <th class="px-6 py-4 font-semibold" scope="col">
-                                <?= createSortLink('merk', 'Merk', $sortBy, $sortOrder, $search) ?>
-                            </th>
-                            <th class="px-6 py-4 font-semibold" scope="col">
-                                <?= createSortLink('no_plat', 'No. Plat', $sortBy, $sortOrder, $search) ?>
-                            </th>
-                            <th class="px-6 py-4 font-semibold" scope="col">
-                                <?= createSortLink('status', 'Status', $sortBy, $sortOrder, $search) ?>
-                            </th>
-                            
-                            <?php if ($user_role === 'admin' || $user_role === 'manajer'): ?>
-                                <th class="px-6 py-4 font-semibold" scope="col">Aksi</th>
-                            <?php endif; ?>
-                            
-                        </tr>
-                    </thead>
-                    <tbody class="text-text-primary-dark">
-                        <?php 
-                        // Logika Penomoran
-                        $nomor;
-                        if ($sortOrder == 'DESC') {
-                            $nomor = $totalResults - (($currentPage - 1) * $limit);
-                        } else {
-                            $nomor = ($currentPage - 1) * $limit + 1;
-                        }
-                        
-                        if ($result->num_rows > 0):
-                            while($row = $result->fetch_assoc()): 
-                            ?>
-                            <tr class="border-b border-white/10 hover:bg-white/5 transition-colors">
-                                <td class="px-6 py-5 font-medium">
-                                    <?php 
-                                        if ($sortOrder == 'DESC') { echo $nomor--; } else { echo $nomor++; }
-                                    ?>
-                                </td>
-                                
-                                <td class="px-6 py-5"><?= htmlspecialchars($row['jenis']) ?></td>
-                                <td class="px-6 py-5"><?= htmlspecialchars($row['merk']) ?></td>
-                                <td class="px-6 py-5"><?= htmlspecialchars($row['no_plat']) ?></td>
-                                
-                                <td class="px-6 py-5">
-                                    <?php 
-                                    // Logika Status Badge
+            <div>
+                <?php if ($result->num_rows > 0): ?>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <?php while($row = $result->fetch_assoc()): ?>
+                            <div class="bg-white/5 p-4 rounded-xl border border-white/8 shadow-sm hover:shadow-md transition">
+                                <div class="h-40 w-full bg-gray-800 rounded-md overflow-hidden flex items-center justify-center mb-4">
+                                    <?php if (!empty($row['image'])): ?>
+                                        <img src="<?= htmlspecialchars($row['image']) ?>" alt="<?= htmlspecialchars($row['merk']) ?>" class="object-cover h-full w-full" />
+                                    <?php else: ?>
+                                        <span class="text-text-secondary-dark">No Image</span>
+                                    <?php endif; ?>
+                                </div>
+                                <h3 class="text-lg font-semibold mb-1 text-white"><?= htmlspecialchars($row['merk']) ?></h3>
+                                <p class="text-sm text-text-secondary-dark mb-2"><?= htmlspecialchars($row['jenis']) ?> • <span class="font-medium"><?= htmlspecialchars($row['no_plat']) ?></span></p>
+                                <p class="text-sm text-text-secondary-dark mb-3">Harga: <span class="font-medium">Rp <?= number_format($row['harga_per_jam'] ?? 0, 0, ',', '.') ?></span> / jam</p>
+
+                                <?php 
                                     $status = htmlspecialchars($row['status']);
                                     $statusClass = ''; $dotClass = '';
                                     if ($status == 'tersedia') {
@@ -126,43 +90,35 @@ function createSortLink($column, $text, $currentSortBy, $currentSortOrder, $curr
                                         $statusClass = 'text-gray-300 bg-gray-500/20 border border-gray-500/30';
                                         $dotClass = 'bg-gray-400';
                                     }
-                                    ?>
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium <?= $statusClass ?> rounded-full">
+                                ?>
+                                <div class="flex items-center justify-between mt-4">
+                                    <span class="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium <?= $statusClass ?> rounded-full">
                                         <span class="w-2 h-2 rounded-full <?= $dotClass ?>"></span>
                                         <?= htmlspecialchars(ucfirst($row['status'])) ?>
                                     </span>
-                                </td>
-                                
-                                <?php if ($user_role === 'admin' || $user_role === 'manajer'): ?>
-                                    <td class="px-6 py-5 flex items-center gap-2">
-                                        
-                                        <a href="index.php?page=kendaraan&action=edit&id=<?= $row['id_kendaraan'] ?>" class="px-3 py-1 text-xs font-medium text-amber-300 bg-amber-500/20 rounded-md hover:bg-amber-500/30 transition">Edit</a>
-                                        
-                                        <form method="POST" action="index.php?page=kendaraan&action=delete" class="m-0 p-0">
-                                            <input type="hidden" name="id_to_delete" value="<?= $row['id_kendaraan'] ?>">
-                                            <input type="hidden" name="csrf_token" value="<?= CSRF::getToken() ?>">
-                                            
-                                            <button typeF="submit" 
-                                                    class="px-3 py-1 text-xs font-medium text-red-300 bg-red-500/20 rounded-md hover:bg-red-500/30 transition" 
-                                                    onclick="return confirm('Apakah Anda yakin ingin menghapus data ini?')">
-                                                Hapus
-                                            </button>
-                                        </form>
-                                        </td>
-                                <?php endif; ?>
-                                
-                            </tr>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="<?= ($user_role === 'admin' || $user_role === 'manajer') ? '6' : '5' ?>" class="text-center px-6 py-10">
-                                    <span class="material-symbols-outlined text-4xl">search_off</span>
-                                    <p class="mt-2">Data tidak ditemukan.</p>
-                                </td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+
+                                    <div class="flex items-center gap-2">
+                                        <?php if ($user_role === 'admin' || $user_role === 'manajer'): ?>
+                                            <a href="index.php?page=kendaraan&action=edit&id=<?= urlencode($row['no_plat']) ?>" class="px-3 py-1 text-xs font-medium text-amber-300 bg-amber-500/20 rounded-md hover:bg-amber-500/30 transition">Edit</a>
+                                            <form method="POST" action="index.php?page=kendaraan&action=delete" class="m-0 p-0">
+                                                <input type="hidden" name="id_to_delete" value="<?= htmlspecialchars($row['no_plat']) ?>">
+                                                <input type="hidden" name="csrf_token" value="<?= CSRF::getToken() ?>">
+                                                <button type="submit" class="px-3 py-1 text-xs font-medium text-red-300 bg-red-500/20 rounded-md hover:bg-red-500/30 transition" onclick="return confirm('Apakah Anda yakin ingin menghapus data ini?')">Hapus</button>
+                                            </form>
+                                        <?php else: ?>
+                                            <a href="index.php?page=transaksi&action=create&no_plat=<?= urlencode($row['no_plat']) ?>" class="px-3 py-1 text-xs font-medium text-white bg-primary rounded-md">Sewa</a>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endwhile; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="text-center py-10">
+                        <span class="material-symbols-outlined text-4xl">search_off</span>
+                        <p class="mt-2">Data tidak ditemukan.</p>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <div class="flex justify-center items-center pt-6 text-sm text-text-secondary-dark">

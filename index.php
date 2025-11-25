@@ -86,5 +86,6 @@ if (method_exists($controller, $action)) {
     exit;
 }
 
-$conn->close();
+// PDO connections close automatically - no need for manual close()
+// Remove: $conn->close();
 ?>

@@ -11,9 +11,9 @@ class Pembayaran {
     // Menghitung total data untuk paginasi, dengan filter pencarian
     public function countAll($search = '') {
         $sql = "SELECT COUNT(pb.id_pembayaran) as total FROM pembayaran pb
-                JOIN transaksi_sewa ts ON pb.id_sewa = ts.id_sewa
-                JOIN pelanggan p ON ts.id_pelanggan = p.id_pelanggan
-                WHERE pb.deleted_at IS NULL";
+            JOIN rental r ON pb.id_rental = r.id_rental
+            JOIN pelanggan p ON r.no_ktp = p.no_ktp
+            WHERE pb.deleted_at IS NULL";
         $params = []; $types = '';
         if (!empty($search)) {
             $sql .= " AND (p.nama LIKE ? OR pb.metode_bayar LIKE ?)";
@@ -28,9 +28,9 @@ class Pembayaran {
 
     // Mengambil semua data untuk tabel, dengan paginasi, pencarian, dan sorting
     public function getAll($search = '', $limit = 10, $offset = 0, $sortBy = 'id_pembayaran', $sortOrder = 'ASC') {
-        $allowedSortColumns = ['id_pembayaran', 'id_sewa', 'nama_pelanggan', 'tgl_bayar', 'jumlah_bayar', 'metode_bayar'];
+        $allowedSortColumns = ['id_pembayaran', 'id_rental', 'nama_pelanggan', 'tgl_bayar', 'jumlah_bayar', 'metode_bayar'];
         $sortColumnMap = [
-            'id_pembayaran' => 'pb.id_pembayaran', 'id_sewa' => 'pb.id_sewa',
+            'id_pembayaran' => 'pb.id_pembayaran', 'id_rental' => 'pb.id_rental',
             'nama_pelanggan' => 'p.nama', 'tgl_bayar' => 'pb.tgl_bayar',
             'jumlah_bayar' => 'pb.jumlah_bayar', 'metode_bayar' => 'pb.metode_bayar'
         ];
@@ -39,9 +39,9 @@ class Pembayaran {
         $orderByColumn = $sortColumnMap[$sortBy];
         
         $sql = "SELECT pb.*, p.nama AS nama_pelanggan FROM pembayaran pb
-                JOIN transaksi_sewa ts ON pb.id_sewa = ts.id_sewa
-                JOIN pelanggan p ON ts.id_pelanggan = p.id_pelanggan
-                WHERE pb.deleted_at IS NULL";
+            JOIN rental r ON pb.id_rental = r.id_rental
+            JOIN pelanggan p ON r.no_ktp = p.no_ktp
+            WHERE pb.deleted_at IS NULL";
         $params = []; $types = '';
         if (!empty($search)) {
             $sql .= " AND (p.nama LIKE ? OR pb.metode_bayar LIKE ?)";
@@ -65,14 +65,14 @@ class Pembayaran {
     
     // --- (Fungsi CRUD Standar) ---
 
-    public function create($id_sewa, $jumlah_bayar, $tgl_bayar, $metode_bayar) {
-        $stmt = $this->conn->prepare("INSERT INTO pembayaran (id_sewa, jumlah_bayar, tgl_bayar, metode_bayar) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("idss", $id_sewa, $jumlah_bayar, $tgl_bayar, $metode_bayar);
+    public function create($id_rental, $jumlah_bayar, $tgl_bayar, $metode_bayar) {
+        $stmt = $this->conn->prepare("INSERT INTO pembayaran (id_rental, jumlah_bayar, tgl_bayar, metode_bayar) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("sdss", $id_rental, $jumlah_bayar, $tgl_bayar, $metode_bayar);
         return $stmt->execute();
     }
-    public function update($id, $id_sewa, $jumlah_bayar, $tgl_bayar, $metode_bayar) {
-        $stmt = $this->conn->prepare("UPDATE pembayaran SET id_sewa=?, jumlah_bayar=?, tgl_bayar=?, metode_bayar=? WHERE id_pembayaran=?");
-        $stmt->bind_param("idssi", $id_sewa, $jumlah_bayar, $tgl_bayar, $metode_bayar, $id);
+    public function update($id, $id_rental, $jumlah_bayar, $tgl_bayar, $metode_bayar) {
+        $stmt = $this->conn->prepare("UPDATE pembayaran SET id_rental=?, jumlah_bayar=?, tgl_bayar=?, metode_bayar=? WHERE id_pembayaran=?");
+        $stmt->bind_param("sdssi", $id_rental, $jumlah_bayar, $tgl_bayar, $metode_bayar, $id);
         return $stmt->execute();
     }
 
@@ -85,9 +85,9 @@ class Pembayaran {
     }
     public function getAllDeleted() {
         $sql = "SELECT pb.*, p.nama AS nama_pelanggan FROM pembayaran pb
-                JOIN transaksi_sewa ts ON pb.id_sewa = ts.id_sewa
-                JOIN pelanggan p ON ts.id_pelanggan = p.id_pelanggan
-                WHERE pb.deleted_at IS NOT NULL ORDER BY pb.deleted_at DESC";
+            JOIN rental r ON pb.id_rental = r.id_rental
+            JOIN pelanggan p ON r.no_ktp = p.no_ktp
+            WHERE pb.deleted_at IS NOT NULL ORDER BY pb.deleted_at DESC";
         return $this->conn->query($sql);
     }
     public function restore($id) {

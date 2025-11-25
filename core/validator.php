@@ -45,8 +45,22 @@ class Validator {
 
                 switch ($rule) {
                     case 'required':
-                        if (empty(trim($value))) {
-                            $this->addError($field, "{$pretty_name} wajib diisi.");
+                        // Support files (arrays) and scalar values
+                        if (is_array($value)) {
+                            // If it's an uploaded file array, check upload error
+                            if (isset($value['error'])) {
+                                if ($value['error'] === UPLOAD_ERR_NO_FILE) {
+                                    $this->addError($field, "{$pretty_name} wajib diisi.");
+                                }
+                            } else {
+                                if (empty($value)) {
+                                    $this->addError($field, "{$pretty_name} wajib diisi.");
+                                }
+                            }
+                        } else {
+                            if ($value === null || trim((string)$value) === '') {
+                                $this->addError($field, "{$pretty_name} wajib diisi.");
+                            }
                         }
                         break;
                     
@@ -75,39 +89,46 @@ class Validator {
                     case 'unique':
                         $table = $params[0];
                         $column = $params[1];
-                        $exceptId = $params[2] ?? null; 
+                        $exceptId = $params[2] ?? null;
 
-                        // ==============================================
-                        // == INI PERBAIKAN FATAL ERROR (BUG 1) ==
-                        // ==============================================
-                        
-                        // 1. Mulai SQL dasar
+                        // Map primary key names for tables that use non-standard PKs
+                        $pkMap = [
+                            'kendaraan' => 'no_plat',
+                            'pelanggan' => 'no_ktp',
+                            'users' => 'id_users',
+                            'pembayaran' => 'id_pembayaran',
+                            'pengembalian' => 'id_pengembalian',
+                            'rental' => 'id_rental'
+                        ];
+
+                        $pk = $pkMap[$table] ?? ('id_' . rtrim($table, 's'));
+
+                        // Build SQL
                         $sql = "SELECT COUNT(*) as count FROM {$table} WHERE {$column} = ?";
-                        
-                        // 2. Hanya tambahkan filter soft-delete jika tabelnya BUKAN 'users'
                         if ($table !== 'users') {
                             $sql .= " AND deleted_at IS NULL";
                         }
-                        // ==============================================
 
                         $types = "s";
                         $query_params = [$value];
 
                         if ($exceptId) {
-                            $pk = 'id_' . rtrim($table, 's'); 
-                            if ($table == 'users') $pk = 'id_user';
-                            
                             $sql .= " AND {$pk} != ?";
-                            $types .= "i";
+                            $types .= is_numeric($exceptId) ? 'i' : 's';
                             $query_params[] = $exceptId;
                         }
 
                         $stmt = $this->db->prepare($sql);
+                        if (!$stmt) {
+                            // If prepare fails, consider it a validation error to avoid fatal exception
+                            $this->addError($field, "Terjadi kesalahan validasi pada {$pretty_name}.");
+                            break;
+                        }
                         $stmt->bind_param($types, ...$query_params);
                         $stmt->execute();
                         $result = $stmt->get_result()->fetch_assoc();
 
-                        if ($result['count'] > 0) {
+                        if (($result['count'] ?? 0) > 0) {
                             $this->addError($field, "{$pretty_name} ini sudah terdaftar.");
                         }
                         break;
@@ -117,6 +138,30 @@ class Validator {
                         $d = DateTime::createFromFormat($format, $value);
                         if (!$d || $d->format($format) !== $value) {
                             $this->addError($field, "{$pretty_name} harus dalam format {$format}.");
+                        }
+                        break;
+
+                    case 'image':
+                        // Validate uploaded image file array (expecting $_FILES['field'])
+                        // If no file uploaded, skip validation (use required rule for mandatory files)
+                        if (is_array($value) && isset($value['error']) && $value['error'] === UPLOAD_ERR_OK) {
+                            $allowed = ['image/jpeg', 'image/png', 'image/jpg'];
+                            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                            $mime = finfo_file($finfo, $value['tmp_name']);
+                            finfo_close($finfo);
+                            if (!in_array($mime, $allowed)) {
+                                $this->addError($field, "{$pretty_name} harus berupa gambar JPG atau PNG.");
+                            }
+                        }
+                        break;
+
+                    case 'maxFile':
+                        // Param 0 = max size in KB
+                        $maxKb = (int)($params[0] ?? 0);
+                        if ($maxKb > 0 && is_array($value) && isset($value['size']) && $value['error'] === UPLOAD_ERR_OK) {
+                            if ($value['size'] > ($maxKb * 1024)) {
+                                $this->addError($field, "{$pretty_name} tidak boleh melebihi {$maxKb} KB.");
+                            }
                         }
                         break;
 

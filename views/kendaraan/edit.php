@@ -13,7 +13,7 @@ include 'header.php';
 
         <div class="bg-black/30 backdrop-blur-sm p-6 md:p-8 rounded-xl shadow-2xl border border-white/10 max-w-2xl mx-auto">
             
-            <form action="index.php?page=kendaraan&action=edit&id=<?= htmlspecialchars($data['id_kendaraan']) ?>" method="POST" class="space-y-6">
+            <form action="index.php?page=kendaraan&action=edit&id=<?= urlencode($data['no_plat']) ?>" method="POST" enctype="multipart/form-data" class="space-y-6">
                 <input type="hidden" name="csrf_token" value="<?= CSRF::getToken() ?>">
 
                 <div>
@@ -65,6 +65,35 @@ include 'header.php';
                 </div>
 
                 <div>
+                    <label for="harga_per_jam" class="block mb-2 text-sm font-medium text-text-primary-dark">Harga per Jam (Rp)</label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        id="harga_per_jam"
+                        name="harga_per_jam"
+                        class="w-full px-4 py-3 border bg-white/5 rounded-lg focus:ring-primary transition-all duration-300 text-white placeholder:text-text-secondary-dark <?= isset($errors['harga_per_jam']) ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-white/20 focus:border-primary focus:ring-primary' ?>"
+                        value="<?= htmlspecialchars($data['harga_per_jam'] ?? '') ?>"
+                        placeholder="Cth: 50000"
+                    >
+                    <?php if (isset($errors['harga_per_jam'])): ?>
+                        <p class="text-red-400 text-xs italic mt-2"><?= $errors['harga_per_jam'] ?></p>
+                    <?php endif; ?>
+                </div>
+
+                <div>
+                    <label for="image" class="block mb-2 text-sm font-medium text-text-primary-dark">Gambar Kendaraan (opsional)</label>
+                    <input type="file" id="image" name="image" accept="image/*" class="w-full text-sm text-white/80">
+                    <?php if (!empty($data['image'])): ?>
+                        <p class="text-text-secondary-dark text-sm mt-2">Gambar saat ini: <a href="<?= htmlspecialchars($data['image']) ?>" target="_blank" class="underline">Lihat</a></p>
+                    <?php endif; ?>
+                    <div id="image_preview" class="mt-2">
+                        <?php if (!empty($data['image'])): ?>
+                            <img src="<?= htmlspecialchars($data['image']) ?>" style="max-width:200px;max-height:150px" class="rounded-md border" />
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div>
                     <label for="status" class="block mb-2 text-sm font-medium text-text-primary-dark">Status</label>
                     <select 
                         name="status" 
@@ -95,3 +124,19 @@ include 'header.php';
 <?php
 include 'footer.php';
 ?>
+
+<script>
+document.getElementById('image')?.addEventListener('change', function(e){
+    const preview = document.getElementById('image_preview');
+    preview.innerHTML = '';
+    const file = this.files && this.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.maxWidth = '200px';
+    img.style.maxHeight = '150px';
+    img.className = 'rounded-md border';
+    preview.appendChild(img);
+});
+</script>

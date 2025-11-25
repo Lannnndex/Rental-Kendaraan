@@ -52,13 +52,12 @@ function createSortLink($column, $text, $currentSortBy, $currentSortOrder, $curr
                 <table class="w-full text-left text-sm">
                     <thead class="text-xs text-text-secondary-dark uppercase border-b border-white/10">
                         <tr>
-                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('id_sewa', 'No.', $sortBy, $sortOrder, $search) ?></th>
-                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('id_sewa', 'ID Sewa', $sortBy, $sortOrder, $search) ?></th>
+                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('id_rental', 'No.', $sortBy, $sortOrder, $search) ?></th>
+                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('id_rental', 'ID Rental', $sortBy, $sortOrder, $search) ?></th>
                             <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('nama_pelanggan', 'Pelanggan', $sortBy, $sortOrder, $search) ?></th>
                             <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('merk_kendaraan', 'Kendaraan', $sortBy, $sortOrder, $search) ?></th>
-                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('tgl_sewa', 'Tgl Sewa', $sortBy, $sortOrder, $search) ?></th>
-                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('tgl_kembali', 'Tgl Kembali', $sortBy, $sortOrder, $search) ?></th>
-                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('total_biaya', 'Total Biaya', $sortBy, $sortOrder, $search) ?></th>
+                            <th class="px-6 py-4 font-semibold" scope="col"><?= createSortLink('tanggal_sewa', 'Periode', $sortBy, $sortOrder, $search) ?></th>
+                            <th class="px-6 py-4 font-semibold" scope="col">Status</th>
                             <th class="px-6 py-4 font-semibold" scope="col">Aksi</th>
                         </tr>
                     </thead>
@@ -80,31 +79,36 @@ function createSortLink($column, $text, $currentSortBy, $currentSortOrder, $curr
                                         if ($sortOrder == 'DESC') { echo $nomor--; } else { echo $nomor++; }
                                     ?>
                                 </td>
-                                <td class="px-6 py-5">#<?= htmlspecialchars($row['id_sewa']) ?></td>
+                                <td class="px-6 py-5">#<?= htmlspecialchars($row['id_rental']) ?></td>
                                 <td class="px-6 py-5"><?= htmlspecialchars($row['nama_pelanggan']) ?></td>
-                                <td class="px-6 py-5"><?= htmlspecialchars($row['merk_kendaraan']) ?> (<?= htmlspecialchars($row['no_plat']) ?>)</td>
-                                <td class="px-6 py-5"><?= htmlspecialchars(date('d M Y', strtotime($row['tgl_sewa']))) ?></td>
-                                <td class="px-6 py-5"><?= htmlspecialchars(date('d M Y', strtotime($row['tgl_kembali']))) ?></td>
-                                <td class="px-6 py-5 font-semibold text-primary">Rp <?= number_format($row['total_biaya'], 0, ',', '.') ?></td>
+                                <td class="px-6 py-5"><?= htmlspecialchars($row['merk_kendaraan']) ?> <span class="text-text-secondary-dark">(<?= htmlspecialchars($row['no_plat']) ?>)</span></td>
+                                <td class="px-6 py-5"><?= htmlspecialchars(date('d M Y', strtotime($row['tanggal_sewa']))) ?> - <?= htmlspecialchars($row['tanggal_kembali'] ? date('d M Y', strtotime($row['tanggal_kembali'])) : '-') ?></td>
+                                <?php
+                                    $isPaid = false;
+                                    if (isset($row['jumlah_bayar']) && $row['jumlah_bayar'] !== null) {
+                                        $isPaid = floatval($row['jumlah_bayar']) >= floatval($row['total_biaya']);
+                                    }
+                                ?>
+                                <td class="px-6 py-5">
+                                    <?php if ($isPaid): ?>
+                                        <span class="inline-flex items-center whitespace-nowrap gap-2 px-2 py-1 text-xs font-semibold rounded-md bg-emerald-600 text-white">Telah Lunas</span>
+                                    <?php else: ?>
+                                        <span class="inline-flex items-center whitespace-nowrap gap-2 px-2 py-1 text-xs font-semibold rounded-md bg-red-600 text-white">Belum Lunas</span>
+                                    <?php endif; ?>
+                                </td>
+                                
                                 <td class="px-6 py-5 flex items-center gap-2">
-                                    <a href="index.php?page=transaksi&action=edit&id=<?= $row['id_sewa'] ?>" class="px-3 py-1 text-xs font-medium text-amber-300 bg-amber-500/20 rounded-md hover:bg-amber-500/30 transition">Edit</a>
-                                    
-                                    <form method="POST" action="index.php?page=transaksi&action=delete" class="m-0 p-0">
-                                        <input type="hidden" name="id_to_delete" value="<?= $row['id_sewa'] ?>">
-                                        <input type="hidden" name="csrf_token" value="<?= CSRF::getToken() ?>">
-                                        
-                                        <button type="submit" 
-                                                class="px-3 py-1 text-xs font-medium text-red-300 bg-red-500/20 rounded-md hover:bg-red-500/30 transition" 
-                                                onclick="return confirm('Apakah Anda yakin ingin menghapus transaksi ini?')">
-                                            Hapus
-                                        </button>
-                                    </form>
-                                    </td>
+                                    <a href="index.php?page=transaksi&action=show&id=<?= urlencode($row['id_rental']) ?>" class="px-3 py-1 text-xs font-medium text-sky-300 bg-sky-500/20 rounded-md hover:bg-sky-500/30 transition">Detail</a>
+                                    <a href="index.php?page=transaksi&action=edit&id=<?= $row['id_rental'] ?>" class="px-3 py-1 text-xs font-medium text-amber-300 bg-amber-500/20 rounded-md hover:bg-amber-500/30 transition">Edit</a>
+                                    <?php if (!$isPaid): ?>
+                                        <a href="index.php?page=transaksi&action=payment&id=<?= $row['id_rental'] ?>" class="px-3 py-1 text-xs font-medium text-white bg-emerald-600/20 rounded-md hover:bg-emerald-600/30 transition">Bayar</a>
+                                    <?php endif; ?>
+                                </td>
                             </tr>
                             <?php endwhile; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="8" class="text-center px-6 py-10">
+                                <td colspan="12" class="text-center px-6 py-10">
                                     <span class="material-symbols-outlined text-4xl">search_off</span>
                                     <p class="mt-2">Data tidak ditemukan.</p>
                                 </td>

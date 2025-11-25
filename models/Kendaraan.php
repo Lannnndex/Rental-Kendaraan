@@ -19,7 +19,8 @@ class Kendaraan {
 
     // Menghitung total data untuk paginasi, dengan filter pencarian
     public function countAll($search = '') {
-        $sql = "SELECT COUNT(id_kendaraan) as total FROM kendaraan WHERE deleted_at IS NULL";
+        // use no_plat as PK in revised schema
+        $sql = "SELECT COUNT(no_plat) as total FROM kendaraan WHERE deleted_at IS NULL";
         $params = []; $types = '';
         if (!empty($search)) {
             $sql .= " AND (jenis LIKE ? OR merk LIKE ? OR no_plat LIKE ?)";
@@ -33,9 +34,9 @@ class Kendaraan {
     }
     
     // Mengambil semua data untuk tabel, dengan paginasi, pencarian, dan sorting
-    public function getAll($search = '', $limit = 10, $offset = 0, $sortBy = 'id_kendaraan', $sortOrder = 'ASC') {
-        $allowedSortColumns = ['id_kendaraan', 'jenis', 'merk', 'no_plat', 'status'];
-        if (!in_array($sortBy, $allowedSortColumns)) $sortBy = 'id_kendaraan';
+    public function getAll($search = '', $limit = 10, $offset = 0, $sortBy = 'no_plat', $sortOrder = 'ASC') {
+        $allowedSortColumns = ['no_plat', 'jenis', 'merk', 'status'];
+        if (!in_array($sortBy, $allowedSortColumns)) $sortBy = 'no_plat';
         if (!in_array(strtoupper($sortOrder), ['ASC', 'DESC'])) $sortOrder = 'ASC';
         $sql = "SELECT * FROM kendaraan WHERE deleted_at IS NULL";
         $params = []; $types = '';
@@ -54,59 +55,73 @@ class Kendaraan {
     
     // Mengambil data by ID. $includeDeleted = true akan mencari di recycle bin.
     public function getById($id, $includeDeleted = false) {
-        $sql = "SELECT * FROM kendaraan WHERE id_kendaraan = ?";
+        // $id is expected to be `no_plat` string in revised schema
+        $sql = "SELECT * FROM kendaraan WHERE no_plat = ?";
         if ($includeDeleted == false) {
             $sql .= " AND deleted_at IS NULL";
         }
         $stmt = $this->conn->prepare($sql);
-        $stmt->bind_param("i", $id); $stmt->execute();
+        $stmt->bind_param("s", $id); $stmt->execute();
         return $stmt->get_result()->fetch_assoc();
     }
     
     // --- (Fungsi CRUD Standar) ---
 
-    public function create($jenis, $merk, $no_plat, $status) {
-        $stmt = $this->conn->prepare("INSERT INTO kendaraan (jenis, merk, no_plat, status) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("ssss", $jenis, $merk, $no_plat, $status);
+    // Note: parameter order is ($no_plat, $jenis, $merk, $harga_per_jam, $image, $status)
+    public function create($no_plat, $jenis, $merk, $harga_per_jam = 0.00, $image = null, $status = 'tersedia') {
+        $stmt = $this->conn->prepare("INSERT INTO kendaraan (no_plat, jenis, merk, harga_per_jam, image, status) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("sssdss", $no_plat, $jenis, $merk, $harga_per_jam, $image, $status);
         return $stmt->execute();
     }
-    public function update($id, $jenis, $merk, $no_plat, $status) {
-        $stmt = $this->conn->prepare("UPDATE kendaraan SET jenis=?, merk=?, no_plat=?, status=? WHERE id_kendaraan=?");
-        $stmt->bind_param("ssssi", $jenis, $merk, $no_plat, $status, $id);
+    public function update($no_plat, $jenis, $merk, $harga_per_jam = 0.00, $image = null, $status = 'tersedia', $original_no_plat = null) {
+        // If original_no_plat provided, update the row identified by original_no_plat (useful when primary key changed)
+        if ($original_no_plat !== null && $original_no_plat !== $no_plat) {
+            $stmt = $this->conn->prepare("UPDATE kendaraan SET no_plat=?, jenis=?, merk=?, harga_per_jam=?, image=?, status=? WHERE no_plat=?");
+            $stmt->bind_param("sssdsss", $no_plat, $jenis, $merk, $harga_per_jam, $image, $status, $original_no_plat);
+            return $stmt->execute();
+        }
+
+        $stmt = $this->conn->prepare("UPDATE kendaraan SET jenis=?, merk=?, harga_per_jam=?, image=?, status=? WHERE no_plat=?");
+        // types: jenis(s), merk(s), harga_per_jam(d), image(s), status(s), no_plat(s)
+        $stmt->bind_param("ssdsss", $jenis, $merk, $harga_per_jam, $image, $status, $no_plat);
         return $stmt->execute();
     }
 
     // --- (Fungsi Soft Delete & Recycle Bin) ---
 
-    public function delete($id) {
+    public function delete($no_plat) {
         // Ini adalah Soft Delete
-        $stmt = $this->conn->prepare("UPDATE kendaraan SET deleted_at = NOW() WHERE id_kendaraan = ?");
-        $stmt->bind_param("i", $id); return $stmt->execute();
+        $stmt = $this->conn->prepare("UPDATE kendaraan SET deleted_at = NOW() WHERE no_plat = ?");
+        $stmt->bind_param("s", $no_plat); return $stmt->execute();
     }
     public function getAllDeleted() {
-        return $this->conn->query("SELECT * FROM kendaraan WHERE deleted_at IS NOT NULL ORDER BY id_kendaraan ASC");
+        return $this->conn->query("SELECT * FROM kendaraan WHERE deleted_at IS NOT NULL ORDER BY no_plat ASC");
     }
-    public function restore($id) {
-        $stmt = $this->conn->prepare("UPDATE kendaraan SET deleted_at = NULL WHERE id_kendaraan = ?");
-        $stmt->bind_param("i", $id); return $stmt->execute();
+    public function restore($no_plat) {
+        $stmt = $this->conn->prepare("UPDATE kendaraan SET deleted_at = NULL WHERE no_plat = ?");
+        $stmt->bind_param("s", $no_plat); return $stmt->execute();
     }
-    public function deletePermanent($id) {
-        $stmt = $this->conn->prepare("DELETE FROM kendaraan WHERE id_kendaraan = ?");
-        $stmt->bind_param("i", $id); return $stmt->execute();
+    public function deletePermanent($no_plat) {
+        $stmt = $this->conn->prepare("DELETE FROM kendaraan WHERE no_plat = ?");
+        $stmt->bind_param("s", $no_plat); return $stmt->execute();
     }
     public function restoreBulk(array $ids) {
         if (empty($ids)) return false;
-        $idList = implode(',', $ids);
-        foreach ($ids as $id) { if (!is_numeric($id)) return false; }
-        $sql = "UPDATE kendaraan SET deleted_at = NULL WHERE id_kendaraan IN ($idList)";
-        $stmt = $this->conn->prepare($sql); return $stmt->execute();
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "UPDATE kendaraan SET deleted_at = NULL WHERE no_plat IN ($placeholders)";
+        $stmt = $this->conn->prepare($sql);
+        $types = str_repeat('s', count($ids));
+        $stmt->bind_param($types, ...$ids);
+        return $stmt->execute();
     }
     public function deletePermanentBulk(array $ids) {
         if (empty($ids)) return false;
-        $idList = implode(',', $ids);
-        foreach ($ids as $id) { if (!is_numeric($id)) return false; }
-        $sql = "DELETE FROM kendaraan WHERE id_kendaraan IN ($idList) AND deleted_at IS NOT NULL";
-        $stmt = $this->conn->prepare($sql); return $stmt->execute();
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "DELETE FROM kendaraan WHERE no_plat IN ($placeholders) AND deleted_at IS NOT NULL";
+        $stmt = $this->conn->prepare($sql);
+        $types = str_repeat('s', count($ids));
+        $stmt->bind_param($types, ...$ids);
+        return $stmt->execute();
     }
     public function autoDeleteOld($days = 30) {
         $sql = "DELETE FROM kendaraan WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - INTERVAL ? DAY";
@@ -122,20 +137,19 @@ class Kendaraan {
 
     // Mengambil semua kendaraan yang 'tersedia' (untuk dropdown form Transaksi)
     public function getAllAvailable() {
-        $sql = "SELECT id_kendaraan, merk, no_plat, status 
+        $sql = "SELECT no_plat, merk, no_plat AS plat, status, harga_per_jam 
                 FROM kendaraan 
                 WHERE status = 'tersedia' AND deleted_at IS NULL 
                 ORDER BY merk ASC";
-        
         $result = $this->conn->query($sql);
         return $result;
     }
 
     // Mengubah status kendaraan (dipanggil oleh Controller Transaksi/Pengembalian)
-    public function updateStatus($id, $status) {
-        $sql = "UPDATE kendaraan SET status = ? WHERE id_kendaraan = ?";
+    public function updateStatus($no_plat, $status) {
+        $sql = "UPDATE kendaraan SET status = ? WHERE no_plat = ?";
         $stmt = $this->conn->prepare($sql);
-        $stmt->bind_param("si", $status, $id);
+        $stmt->bind_param("ss", $status, $no_plat);
         return $stmt->execute();
     }
 

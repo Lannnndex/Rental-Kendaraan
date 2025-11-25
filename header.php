@@ -120,11 +120,7 @@ $user_role = $_SESSION['role'] ?? 'karyawan';
                     href="index.php?page=transaksi">
                     <span class="material-symbols-outlined text-xl <?= ($active_page == 'transaksi') ? 'text-primary' : '' ?>">receipt_long</span> Transaksi
                 </a>
-                <a class="flex items-center gap-3 px-4 py-2 rounded-md transition-colors
-                    <?= ($active_page == 'pembayaran') ? 'bg-primary/20 text-white font-semibold' : 'text-text-secondary-dark hover:bg-white/10' ?>" 
-                    href="index.php?page=pembayaran">
-                    <span class="material-symbols-outlined text-xl <?= ($active_page == 'pembayaran') ? 'text-primary' : '' ?>">payment</span> Pembayaran
-                </a>
+                <!-- Link Pembayaran telah diarsipkan; pembayaran sekarang disimpan di tabel `rental` -->
                 <a class="flex items-center gap-3 px-4 py-2 rounded-md transition-colors
                     <?= ($active_page == 'pengembalian') ? 'bg-primary/20 text-white font-semibold' : 'text-text-secondary-dark hover:bg-white/10' ?>" 
                     href="index.php?page=pengembalian">
@@ -150,3 +146,9 @@ $user_role = $_SESSION['role'] ?? 'karyawan';
     </aside>
 
     <main class="flex-1 p-8 overflow-y-auto">
+        <?php if (!empty($_SESSION['flash_error'])): ?>
+            <div class="max-w-4xl mx-auto mb-6 p-4 rounded-md bg-red-800/80 text-red-100">
+                <?= htmlspecialchars($_SESSION['flash_error']) ?>
+            </div>
+            <?php unset($_SESSION['flash_error']); ?>
+        <?php endif; ?>

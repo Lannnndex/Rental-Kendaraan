@@ -11,10 +11,13 @@ $host = 'localhost';
 $user = 'root';
 $pass = '';
 $db   = 'rental_kendaraan'; 
-$conn = new mysqli($host, $user, $pass, $db);
 
-if ($conn->connect_error) {
-    die("Koneksi Database Gagal: " . $conn->connect_error);
+// Create a PDO-backed adapter (keeps existing code-compatible wrapper)
+require_once __DIR__ . '/core/PDOAdapter.php';
+$conn = new PDOAdapter($host, $user, $pass, $db);
+
+if (!empty($conn->error)) {
+    die("Koneksi Database Gagal: " . $conn->error);
 }
 
 // 2. Muat file Inti (Core)
